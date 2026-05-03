@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -52,6 +52,46 @@ export default function Journal() {
   const [genre, setGenre] = useState(GENRES[0]);
   const [status, setStatus] = useState<SongStatus>("Idea");
   const [link, setLink] = useState("");
+
+  useEffect(() => {
+    if (songs.length === 0) {
+      setSongs([
+        {
+          id: crypto.randomUUID(),
+          title: "Neon Confessions",
+          bpm: 94,
+          key: "F# Minor",
+          mood: "Tense, seductive",
+          genre: "R&B",
+          status: "Mixed",
+          link: "https://suno.com/song/neon-confessions",
+          dateAdded: "2026-04-12T10:00:00.000Z",
+        },
+        {
+          id: crypto.randomUUID(),
+          title: "Paper Crown",
+          bpm: 128,
+          key: "C Minor",
+          mood: "Defiant, soaring",
+          genre: "Pop",
+          status: "Demo",
+          link: "https://udio.com/song/paper-crown",
+          dateAdded: "2026-04-18T10:00:00.000Z",
+        },
+        {
+          id: crypto.randomUUID(),
+          title: "Late Train Lullaby",
+          bpm: 72,
+          key: "A Major",
+          mood: "Reflective, intimate",
+          genre: "Indie",
+          status: "Idea",
+          link: "https://suno.com/song/late-train-lullaby",
+          dateAdded: "2026-04-25T10:00:00.000Z",
+        },
+      ]);
+    }
+  }, [songs.length, setSongs]);
 
   const openNewDialog = () => {
     setEditingId(null);

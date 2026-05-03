@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { Button } from "@/components/ui/button";
@@ -39,6 +39,23 @@ export default function Notebook() {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [tags, setTags] = useState("");
   const [source, setSource] = useState("");
+
+  useEffect(() => {
+    if (entries.length === 0) {
+      setEntries([
+        { id: crypto.randomUUID(), content: "I keep hearing your name in the static like a ghost that won't leave the chorus.", category: "Love", tags: "ghost imagery, chorus", source: "Midnight Demo", isFavorite: true, date: "2026-04-03T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "The room still leans when I walk in, like the walls remember every bad decision.", category: "Pain", tags: "room imagery, memory", source: "After Hours Notes", isFavorite: false, date: "2026-04-04T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "I burned the bridges just to feel the heat one more time.", category: "Addiction", tags: "fire, relapse", source: "Unfinished Verse", isFavorite: true, date: "2026-04-05T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "Your voice was a lighthouse in a storm I never planned to survive.", category: "Love", tags: "lighthouse, storm", source: "Verse Bank", isFavorite: false, date: "2026-04-06T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "I prayed for a clean break but kept calling the poison by its first name.", category: "Addiction", tags: "poison, relapse", source: "Chorus Ideas", isFavorite: true, date: "2026-04-07T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "We were two headlights cutting through the rain with nowhere to arrive.", category: "Love", tags: "highway, rain", source: "Road Song", isFavorite: false, date: "2026-04-08T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "My ribs are a locked drawer full of letters I never sent.", category: "Pain", tags: "letters, silence", source: "Notebook", isFavorite: false, date: "2026-04-09T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "I wore regret like jewelry until it became part of my shape.", category: "Addiction", tags: "regret, jewelry", source: "Hook Vault", isFavorite: true, date: "2026-04-10T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "The moon watched over us like a producer with too much patience.", category: "Nature", tags: "moon, witness", source: "Nature Sketches", isFavorite: false, date: "2026-04-11T11:00:00.000Z" },
+        { id: crypto.randomUUID(), content: "I loved you like a fire loves oxygen: reckless and impossible to hold.", category: "Love", tags: "fire, love", source: "Favorite Lines", isFavorite: true, date: "2026-04-12T11:00:00.000Z" },
+      ]);
+    }
+  }, [entries.length, setEntries]);
 
   const openNewDialog = () => {
     setEditingId(null);
