@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { reorderItems } from "@/lib/song-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { GripVertical, Plus, Trash2 } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { cn } from "@/lib/utils";
-import { useEffect } from "react";
 
 type EmotionalArc = "Rising" | "Peak" | "Falling" | "Valley" | "Pivot" | "Resolution";
 
@@ -38,34 +37,33 @@ type AlbumProject = {
   tracks: Track[];
 };
 
+const DEFAULT_ALBUMS: AlbumProject[] = [
+  {
+    id: "album-default-1",
+    name: "Cycles of Addiction",
+    theme: "A nightmarish loop of relapse, denial, and fragile hope told across one destructive year.",
+    tracks: [
+      { id: "t1", title: "Craving at 2AM", chapter: "Act I: The pull", arc: "Valley", themes: "isolation, craving", mood: "Cold, intimate" },
+      { id: "t2", title: "Borrowed Light", chapter: "Act I: False comfort", arc: "Rising", themes: "escape, illusion", mood: "Siren-like, hazy" },
+      { id: "t3", title: "Glass in the Sink", chapter: "Act II: Consequence", arc: "Peak", themes: "damage, shame", mood: "Explosive, raw" },
+      { id: "t4", title: "White Knuckles", chapter: "Act II: Withdrawal", arc: "Falling", themes: "withdrawal, fear", mood: "Tense, stripped" },
+      { id: "t5", title: "Phone Call to No One", chapter: "Act III: Isolation", arc: "Valley", themes: "loneliness, relapse", mood: "Lonely, echoing" },
+      { id: "t6", title: "Twelve Steps Back", chapter: "Act III: The cycle", arc: "Pivot", themes: "patterns, relapse", mood: "Uneasy, marching" },
+      { id: "t7", title: "Morning After Promise", chapter: "Act IV: Recovery attempt", arc: "Rising", themes: "resolve, shame", mood: "Fragile, hopeful" },
+      { id: "t8", title: "Open Window", chapter: "Epilogue: Breath", arc: "Resolution", themes: "release, grace", mood: "Luminous, calm" },
+    ],
+  },
+];
+
 export default function Album() {
-  const [albums, setAlbums] = useLocalStorage<AlbumProject[]>("song-architect-albums", []);
+  const [albums, setAlbums] = useLocalStorage<AlbumProject[]>(
+    "song-architect-albums",
+    DEFAULT_ALBUMS,
+  );
   const [currentAlbumId, setCurrentAlbumId] = useState<string | null>(albums[0]?.id || null);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
 
-  const currentAlbum = albums.find(a => a.id === currentAlbumId) || null;
-
-  useEffect(() => {
-    if (albums.length === 0) {
-      const projectId = crypto.randomUUID();
-      setAlbums([{
-        id: projectId,
-        name: "Cycles of Addiction",
-        theme: "A nightmarish loop of relapse, denial, and fragile hope told across one destructive year.",
-        tracks: [
-          { id: crypto.randomUUID(), title: "Craving at 2AM", chapter: "Act I: The pull", arc: "Valley", themes: "isolation, craving", mood: "Cold, intimate" },
-          { id: crypto.randomUUID(), title: "Borrowed Light", chapter: "Act I: False comfort", arc: "Rising", themes: "escape, illusion", mood: "Siren-like, hazy" },
-          { id: crypto.randomUUID(), title: "Glass in the Sink", chapter: "Act II: Consequence", arc: "Peak", themes: "damage, shame", mood: "Explosive, raw" },
-          { id: crypto.randomUUID(), title: "White Knuckles", chapter: "Act II: Withdrawal", arc: "Falling", themes: "withdrawal, fear", mood: "Tense, stripped" },
-          { id: crypto.randomUUID(), title: "Phone Call to No One", chapter: "Act III: Isolation", arc: "Valley", themes: "loneliness, relapse", mood: "Lonely, echoing" },
-          { id: crypto.randomUUID(), title: "Twelve Steps Back", chapter: "Act III: The cycle", arc: "Pivot", themes: "patterns, relapse", mood: "Uneasy, marching" },
-          { id: crypto.randomUUID(), title: "Morning After Promise", chapter: "Act IV: Recovery attempt", arc: "Rising", themes: "resolve, shame", mood: "Fragile, hopeful" },
-          { id: crypto.randomUUID(), title: "Open Window", chapter: "Epilogue: Breath", arc: "Resolution", themes: "release, grace", mood: "Luminous, calm" },
-        ]
-      }]);
-      setCurrentAlbumId(projectId);
-    }
-  }, [albums.length, setAlbums]);
+  const currentAlbum = albums.find(a => a.id === currentAlbumId) || albums[0] || null;
 
   const createAlbum = () => {
     const newAlbum: AlbumProject = {
@@ -119,11 +117,7 @@ export default function Album() {
     e.preventDefault();
     if (draggedIdx === null || draggedIdx === index || !currentAlbum) return;
 
-    const newTracks = [...currentAlbum.tracks];
-    const draggedItem = newTracks[draggedIdx];
-    newTracks.splice(draggedIdx, 1);
-    newTracks.splice(index, 0, draggedItem);
-    
+    const newTracks = reorderItems(currentAlbum.tracks, draggedIdx, index);
     setDraggedIdx(index);
     updateCurrentAlbum({ tracks: newTracks });
   };

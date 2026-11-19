@@ -1,11 +1,12 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { sanitizeExternalUrl } from "@/lib/song-utils";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit2, Trash2, ExternalLink, ArrowUpDown } from "lucide-react";
 
@@ -36,8 +37,47 @@ const STATUS_COLORS: Record<SongStatus, string> = {
   "Released": "bg-primary/20 text-primary border-primary/30"
 };
 
+const DEFAULT_SONGS: SongEntry[] = [
+  {
+    id: "song-neon-confessions",
+    title: "Neon Confessions",
+    bpm: 94,
+    key: "F# Minor",
+    mood: "Tense, seductive",
+    genre: "R&B",
+    status: "Mixed",
+    link: "https://suno.com/song/neon-confessions",
+    dateAdded: "2026-04-12T10:00:00.000Z",
+  },
+  {
+    id: "song-paper-crown",
+    title: "Paper Crown",
+    bpm: 128,
+    key: "C Minor",
+    mood: "Defiant, soaring",
+    genre: "Pop",
+    status: "Demo",
+    link: "https://udio.com/song/paper-crown",
+    dateAdded: "2026-04-18T10:00:00.000Z",
+  },
+  {
+    id: "song-late-train-lullaby",
+    title: "Late Train Lullaby",
+    bpm: 72,
+    key: "A Major",
+    mood: "Reflective, intimate",
+    genre: "Indie",
+    status: "Idea",
+    link: "https://suno.com/song/late-train-lullaby",
+    dateAdded: "2026-04-25T10:00:00.000Z",
+  },
+];
+
 export default function Journal() {
-  const [songs, setSongs] = useLocalStorage<SongEntry[]>("song-architect-journal", []);
+  const [songs, setSongs] = useLocalStorage<SongEntry[]>(
+    "song-architect-journal",
+    DEFAULT_SONGS,
+  );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   
@@ -52,46 +92,6 @@ export default function Journal() {
   const [genre, setGenre] = useState(GENRES[0]);
   const [status, setStatus] = useState<SongStatus>("Idea");
   const [link, setLink] = useState("");
-
-  useEffect(() => {
-    if (songs.length === 0) {
-      setSongs([
-        {
-          id: crypto.randomUUID(),
-          title: "Neon Confessions",
-          bpm: 94,
-          key: "F# Minor",
-          mood: "Tense, seductive",
-          genre: "R&B",
-          status: "Mixed",
-          link: "https://suno.com/song/neon-confessions",
-          dateAdded: "2026-04-12T10:00:00.000Z",
-        },
-        {
-          id: crypto.randomUUID(),
-          title: "Paper Crown",
-          bpm: 128,
-          key: "C Minor",
-          mood: "Defiant, soaring",
-          genre: "Pop",
-          status: "Demo",
-          link: "https://udio.com/song/paper-crown",
-          dateAdded: "2026-04-18T10:00:00.000Z",
-        },
-        {
-          id: crypto.randomUUID(),
-          title: "Late Train Lullaby",
-          bpm: 72,
-          key: "A Major",
-          mood: "Reflective, intimate",
-          genre: "Indie",
-          status: "Idea",
-          link: "https://suno.com/song/late-train-lullaby",
-          dateAdded: "2026-04-25T10:00:00.000Z",
-        },
-      ]);
-    }
-  }, [songs.length, setSongs]);
 
   const openNewDialog = () => {
     setEditingId(null);
@@ -255,9 +255,9 @@ export default function Journal() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {song.link && (
+                        {sanitizeExternalUrl(song.link) && (
                           <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-white" asChild>
-                            <a href={song.link} target="_blank" rel="noopener noreferrer">
+                            <a href={sanitizeExternalUrl(song.link)!} target="_blank" rel="noopener noreferrer">
                               <ExternalLink className="w-4 h-4" />
                             </a>
                           </Button>

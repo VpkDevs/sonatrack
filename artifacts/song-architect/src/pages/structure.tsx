@@ -1,6 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import {
+  calculateTotalBars,
+  formatStructureExport,
+  reorderItems,
+} from "@/lib/song-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -42,15 +47,12 @@ const SAMPLE_SECTIONS: Section[] = [
 ];
 
 export default function Structure() {
-  const [sections, setSections] = useLocalStorage<Section[]>("song-architect-structure", []);
+  const [sections, setSections] = useLocalStorage<Section[]>(
+    "song-architect-structure",
+    SAMPLE_SECTIONS,
+  );
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (sections.length === 0) {
-      setSections(SAMPLE_SECTIONS);
-    }
-  }, [sections.length, setSections]);
 
   const addSection = (type: string) => {
     const colorIdx = sections.length % COLORS.length;
@@ -88,11 +90,7 @@ export default function Structure() {
     e.preventDefault();
     if (draggedIdx === null || draggedIdx === index) return;
 
-    const newSections = [...sections];
-    const draggedItem = newSections[draggedIdx];
-    newSections.splice(draggedIdx, 1);
-    newSections.splice(index, 0, draggedItem);
-    setSections(newSections);
+    setSections(reorderItems(sections, draggedIdx, index));
     setDraggedIdx(null);
     setDragOverIdx(null);
   };
@@ -103,10 +101,7 @@ export default function Structure() {
   };
 
   const exportStructure = () => {
-    const lines = sections.map((s, i) =>
-      `[${i + 1}] ${s.name} — ${s.bars} bars${s.notes ? `\n    ${s.notes}` : ''}`
-    ).join('\n\n');
-    const text = `SONG STRUCTURE\n${'='.repeat(40)}\nTotal: ${totalBars} bars\n\n${lines}`;
+    const text = formatStructureExport(sections);
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -118,7 +113,7 @@ export default function Structure() {
     URL.revokeObjectURL(url);
   };
 
-  const totalBars = sections.reduce((acc, s) => acc + s.bars, 0);
+  const totalBars = calculateTotalBars(sections);
 
   return (
     <PageTransition className="space-y-8">

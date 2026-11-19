@@ -1,68 +1,23 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, type ReactElement } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { playChord, NOTES } from "@/lib/audio";
+import { playChord } from "@/lib/audio";
+import {
+  KEYS,
+  SCALES,
+  PRESETS,
+  getDiatonicChords,
+  getNoteFrequency,
+  buildChordFrequencies,
+  type ChordPreset,
+} from "@/lib/music-theory";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Play, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const KEYS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const SCALES = ["Major", "Minor", "Harmonic Minor", "Dorian", "Phrygian", "Lydian", "Mixolydian"];
-
-const SCALE_INTERVALS: Record<string, number[]> = {
-  "Major": [0, 2, 4, 5, 7, 9, 11],
-  "Minor": [0, 2, 3, 5, 7, 8, 10],
-  "Harmonic Minor": [0, 2, 3, 5, 7, 8, 11],
-  "Dorian": [0, 2, 3, 5, 7, 9, 10],
-  "Phrygian": [0, 1, 3, 5, 7, 8, 10],
-  "Lydian": [0, 2, 4, 6, 7, 9, 11],
-  "Mixolydian": [0, 2, 4, 5, 7, 9, 10]
-};
-
-const MAJOR_CHORDS = ["Major", "Minor", "Minor", "Major", "Major", "Minor", "Diminished"];
-const MINOR_CHORDS = ["Minor", "Diminished", "Major", "Minor", "Minor", "Major", "Major"];
-const ROMAN_MAJOR = ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
-const ROMAN_MINOR = ["i", "ii°", "III", "iv", "v", "VI", "VII"];
-
-const PRESETS = [
-  { name: "Pop I–V–vi–IV", key: "C", scale: "Major", progression: [0, 4, 5, 3] },
-  { name: "Jazz ii–V–I", key: "C", scale: "Major", progression: [1, 4, 0] },
-  { name: "EDM Minor", key: "A", scale: "Minor", progression: [0, 5, 2, 6] },
-  { name: "Sad Ballad", key: "A", scale: "Minor", progression: [0, 6, 5, 6] },
-  { name: "Epic Minor", key: "A", scale: "Minor", progression: [0, 5, 2, 4, 5, 0, 3, 4] },
-  { name: "Andalusian", key: "A", scale: "Minor", progression: [0, 6, 5, 4] },
-];
-
-function getChordNotes(rootNote: string, quality: string): string[] {
-  const allNotes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const rootIdx = allNotes.indexOf(rootNote);
-  let intervals = [0, 4, 7];
-  if (quality === "Minor") intervals = [0, 3, 7];
-  if (quality === "Diminished") intervals = [0, 3, 6];
-  if (quality === "Augmented") intervals = [0, 4, 8];
-  return intervals.map(interval => allNotes[(rootIdx + interval) % 12]);
-}
-
-function getNoteFrequency(noteName: string, octave: number): number {
-  const key = `${noteName}${octave}`;
-  if (NOTES[key]) return NOTES[key];
-  if (octave > 5) return getNoteFrequency(noteName, octave - 1) * 2;
-  if (octave < 3) return getNoteFrequency(noteName, octave + 1) / 2;
-  return 440;
-}
-
 function playChordFromNotes(notes: string[], baseOctave = 3) {
-  const allNotes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-  const frequencies = notes.map((note, i) => {
-    let oct = baseOctave;
-    if (i > 0) {
-      const rootIdx = allNotes.indexOf(notes[0]);
-      const noteIdx = allNotes.indexOf(note);
-      if (noteIdx < rootIdx) oct++;
-    }
-    return getNoteFrequency(note, oct);
-  });
+  const frequencies = buildChordFrequencies(notes, baseOctave);
   playChord(frequencies, 1.8);
 }
 
@@ -79,33 +34,16 @@ export default function Chords() {
   const [activeChordIdx, setActiveChordIdx] = useState<number | null>(null);
   const [pressedKey, setPressedKey] = useState<string | null>(null);
 
-  const diatonicChords = useMemo(() => {
-    const allNotes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-    const rootIdx = allNotes.indexOf(selectedKey);
-    const intervals = SCALE_INTERVALS[selectedScale] || SCALE_INTERVALS["Major"];
-    const qualities = selectedScale.includes("Minor") ? MINOR_CHORDS : MAJOR_CHORDS;
-    const numerals = selectedScale.includes("Minor") ? ROMAN_MINOR : ROMAN_MAJOR;
-
-    return intervals.map((semitones, i) => {
-      const noteIdx = (rootIdx + semitones) % 12;
-      const noteRoot = allNotes[noteIdx];
-      const quality = qualities[i];
-      const notes = getChordNotes(noteRoot, quality);
-      return {
-        name: `${noteRoot}${quality === "Major" ? "" : quality === "Minor" ? "m" : quality === "Diminished" ? "°" : "+"}`,
-        numeral: numerals[i],
-        notes,
-        quality,
-      };
-    });
-  }, [selectedKey, selectedScale]);
+  const diatonicChords = useMemo(
+    () => getDiatonicChords(selectedKey, selectedScale),
+    [selectedKey, selectedScale],
+  );
 
   const pianoKeys = useMemo(() => {
-    const keys = [];
-    const allNotes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const keys: Array<{ note: string; octave: number; isBlack: boolean }> = [];
     for (let oct = 3; oct <= 5; oct++) {
-      for (let i = 0; i < 12; i++) {
-        keys.push({ note: allNotes[i], octave: oct, isBlack: allNotes[i].includes("#") });
+      for (const note of KEYS) {
+        keys.push({ note, octave: oct, isBlack: note.includes("#") });
       }
     }
     return keys;
@@ -118,7 +56,7 @@ export default function Chords() {
     return [];
   }, [activeChordIdx, progression, diatonicChords]);
 
-  const loadPreset = useCallback((p: typeof PRESETS[0]) => {
+  const loadPreset = useCallback((p: ChordPreset) => {
     setSelectedKey(p.key);
     setSelectedScale(p.scale);
     setProgression(p.progression);
@@ -377,7 +315,7 @@ export default function Chords() {
               {/* Overlay black keys */}
               <div className="absolute top-0 left-0 flex pointer-events-none" style={{ zIndex: 2 }}>
                 {(() => {
-                  const blackKeyPositions: JSX.Element[] = [];
+                  const blackKeyPositions: ReactElement[] = [];
                   let whiteOffset = 0;
                   pianoKeys.forEach((k, idx) => {
                     const keyId = `${k.note}${k.octave}`;

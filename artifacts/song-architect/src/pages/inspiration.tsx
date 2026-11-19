@@ -1,10 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { PageTransition } from "@/components/page-transition";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { generateSongConcept, type GeneratedConcept } from "@/lib/song-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, Save, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -12,23 +12,19 @@ const GENRES = ["Pop", "Hip-Hop", "R&B", "EDM", "Rock", "Metal", "Jazz", "Blues"
 const MOODS = ["Happy", "Sad", "Angry", "Melancholic", "Euphoric", "Nostalgic", "Anxious", "Hopeful", "Defiant", "Romantic", "Dark", "Mysterious", "Peaceful", "Energetic"];
 const INSTRUMENTS = ["Guitar", "Piano", "Strings", "Brass", "808s", "Synths", "Drums", "Bass", "Vocals", "Choir", "Flute", "Violin", "Cello", "Trumpet", "Sax", "Harp", "Organ", "Pad", "Lead", "Arp"];
 
-type GeneratedConcept = {
-  id: string;
-  date: string;
-  genre: string;
-  mood: string;
-  theme: string;
-  bpmRange: string;
-  titles: string[];
-  hookIdea: string;
-  verseThemes: string[];
-  bridgeConcept: string;
-  productionNotes: string;
-  referenceArtists: string[];
-};
+const DEFAULT_CONCEPTS: GeneratedConcept[] = [
+  { id: "concept-1", date: "2026-04-01T09:00:00.000Z", genre: "R&B", mood: "Melancholic", theme: "letting go", bpmRange: "84-96", titles: ["Ghost In The Mix", "Soft Exit", "Afterimage"], hookIdea: "A half-whispered chorus about releasing what still haunts you, built over a sparse piano loop and swollen harmonies.", verseThemes: ["The last text that never came back", "Learning the shape of absence", "Choosing peace over replaying the pain"], bridgeConcept: "Drop to a single vocal and piano motif before the final chorus blooms into layered harmonies.", productionNotes: "Use intimate close-miked vocals, filtered Rhodes, distant sub-bass, and a brushed-snare pocket.", referenceArtists: ["Frank Ocean", "James Blake", "SZA"] },
+  { id: "concept-2", date: "2026-04-02T09:00:00.000Z", genre: "Pop", mood: "Hopeful", theme: "starting over", bpmRange: "118-124", titles: ["First Light Drive", "Open Windows", "Reset the Sky"], hookIdea: "A bright, chantable hook that turns recovery into a road trip anthem with sunlit synths and stacked claps.", verseThemes: ["Leaving the old neighborhood behind", "Rediscovering motion", "Turning mistakes into momentum"], bridgeConcept: "A half-time bridge with filtered drums that lifts into a key-change feeling without changing the key.", productionNotes: "Big drums, glossy synth plucks, wide chorus doubles, and a lift in the final 8 bars.", referenceArtists: ["Dua Lipa", "The Weeknd", "MUNA"] },
+  { id: "concept-3", date: "2026-04-03T09:00:00.000Z", genre: "Hip-Hop", mood: "Defiant", theme: "survival", bpmRange: "140-152", titles: ["No Luck Left", "Street Halo", "Still Standing"], hookIdea: "A punchy mantra chorus with chopped vocal samples and a bassline that feels like it won't back down.", verseThemes: ["Pressure from every side", "Learning the rules too late", "Winning by refusing to quit"], bridgeConcept: "Strip the beat to percussion and spoken cadence, then slam back in with doubled 808s.", productionNotes: "Dark keys, aggressive drum programming, tight snare snap, and a triumphant brass stab motif.", referenceArtists: ["Kendrick Lamar", "J. Cole", "Freddie Gibbs"] },
+  { id: "concept-4", date: "2026-04-04T09:00:00.000Z", genre: "Indie", mood: "Nostalgic", theme: "small town summers", bpmRange: "92-104", titles: ["Back Porch Satellites", "Summer Static", "The Long Way Home"], hookIdea: "A warm, wistful chorus that feels like porch light fading into dusk, carried by jangly guitars and soft gang vocals.", verseThemes: ["Memory stitched to place", "Friends drifting apart", "The last night before everything changed"], bridgeConcept: "A wide ambient break with field recordings and a single melody line on guitar harmonics.", productionNotes: "Tape warmth, roomy drums, chiming guitars, and a subtle pedal steel shimmer.", referenceArtists: ["Bon Iver", "Vampire Weekend", "Phoebe Bridgers"] },
+  { id: "concept-5", date: "2026-04-05T09:00:00.000Z", genre: "EDM", mood: "Euphoric", theme: "nightfall city escape", bpmRange: "126-132", titles: ["Electric Overpass", "Neon Run", "Midnight Lift"], hookIdea: "A festival-ready topline that explodes into a drop with vocal chops and rising synth arps.", verseThemes: ["Chasing the skyline", "Breaking routine at 2AM", "Finding freedom in motion"], bridgeConcept: "A breakdown with filtered pads and a suspenseful riser that detonates into the final drop.", productionNotes: "Punchy sidechained kick, shimmering supersaws, impact hits, and a huge stereo spread.", referenceArtists: ["Disclosure", "RÜFÜS DU SOL", "Madeon"] },
+];
 
 export default function Inspiration() {
-  const [savedConcepts, setSavedConcepts] = useLocalStorage<GeneratedConcept[]>("song-architect-concepts", []);
+  const [savedConcepts, setSavedConcepts] = useLocalStorage<GeneratedConcept[]>(
+    "song-architect-concepts",
+    DEFAULT_CONCEPTS,
+  );
   
   const [genre, setGenre] = useState(GENRES[0]);
   const [mood, setMood] = useState(MOODS[0]);
@@ -39,18 +35,6 @@ export default function Inspiration() {
   
   const [currentConcept, setCurrentConcept] = useState<GeneratedConcept | null>(null);
 
-  useEffect(() => {
-    if (savedConcepts.length === 0) {
-      setSavedConcepts([
-        { id: crypto.randomUUID(), date: "2026-04-01T09:00:00.000Z", genre: "R&B", mood: "Melancholic", theme: "letting go", bpmRange: "84-96", titles: ["Ghost In The Mix", "Soft Exit", "Afterimage"], hookIdea: "A half-whispered chorus about releasing what still haunts you, built over a sparse piano loop and swollen harmonies.", verseThemes: ["The last text that never came back", "Learning the shape of absence", "Choosing peace over replaying the pain"], bridgeConcept: "Drop to a single vocal and piano motif before the final chorus blooms into layered harmonies.", productionNotes: "Use intimate close-miked vocals, filtered Rhodes, distant sub-bass, and a brushed-snare pocket.", referenceArtists: ["Frank Ocean", "James Blake", "SZA"] },
-        { id: crypto.randomUUID(), date: "2026-04-02T09:00:00.000Z", genre: "Pop", mood: "Hopeful", theme: "starting over", bpmRange: "118-124", titles: ["First Light Drive", "Open Windows", "Reset the Sky"], hookIdea: "A bright, chantable hook that turns recovery into a road trip anthem with sunlit synths and stacked claps.", verseThemes: ["Leaving the old neighborhood behind", "Rediscovering motion", "Turning mistakes into momentum"], bridgeConcept: "A half-time bridge with filtered drums that lifts into a key-change feeling without changing the key.", productionNotes: "Big drums, glossy synth plucks, wide chorus doubles, and a lift in the final 8 bars.", referenceArtists: ["Dua Lipa", "The Weeknd", "MUNA"] },
-        { id: crypto.randomUUID(), date: "2026-04-03T09:00:00.000Z", genre: "Hip-Hop", mood: "Defiant", theme: "survival", bpmRange: "140-152", titles: ["No Luck Left", "Street Halo", "Still Standing"], hookIdea: "A punchy mantra chorus with chopped vocal samples and a bassline that feels like it won't back down.", verseThemes: ["Pressure from every side", "Learning the rules too late", "Winning by refusing to quit"], bridgeConcept: "Strip the beat to percussion and spoken cadence, then slam back in with doubled 808s.", productionNotes: "Dark keys, aggressive drum programming, tight snare snap, and a triumphant brass stab motif.", referenceArtists: ["Kendrick Lamar", "J. Cole", "Freddie Gibbs"] },
-        { id: crypto.randomUUID(), date: "2026-04-04T09:00:00.000Z", genre: "Indie", mood: "Nostalgic", theme: "small town summers", bpmRange: "92-104", titles: ["Back Porch Satellites", "Summer Static", "The Long Way Home"], hookIdea: "A warm, wistful chorus that feels like porch light fading into dusk, carried by jangly guitars and soft gang vocals.", verseThemes: ["Memory stitched to place", "Friends drifting apart", "The last night before everything changed"], bridgeConcept: "A wide ambient break with field recordings and a single melody line on guitar harmonics.", productionNotes: "Tape warmth, roomy drums, chiming guitars, and a subtle pedal steel shimmer.", referenceArtists: ["Bon Iver", "Vampire Weekend", "Phoebe Bridgers"] },
-        { id: crypto.randomUUID(), date: "2026-04-05T09:00:00.000Z", genre: "EDM", mood: "Euphoric", theme: "nightfall city escape", bpmRange: "126-132", titles: ["Electric Overpass", "Neon Run", "Midnight Lift"], hookIdea: "A festival-ready topline that explodes into a drop with vocal chops and rising synth arps.", verseThemes: ["Chasing the skyline", "Breaking routine at 2AM", "Finding freedom in motion"], bridgeConcept: "A breakdown with filtered pads and a suspenseful riser that detonates into the final drop.", productionNotes: "Punchy sidechained kick, shimmering supersaws, impact hits, and a huge stereo spread.", referenceArtists: ["Disclosure", "RÜFÜS DU SOL", "Madeon"] }
-      ]);
-    }
-  }, [savedConcepts.length, setSavedConcepts]);
-
   const toggleInst = (inst: string) => {
     if (selectedInsts.includes(inst)) {
       setSelectedInsts(selectedInsts.filter(i => i !== inst));
@@ -60,62 +44,14 @@ export default function Inspiration() {
   };
 
   const generateConcept = () => {
-    // Deterministic-ish generation based on inputs
-    const baseTheme = theme || "the human condition";
-    const instStr = selectedInsts.length > 0 ? selectedInsts.join(" and ") : "minimal instrumentation";
-    
-    // Arrays of creative snippets
-    const titles = [
-      `${mood} ${baseTheme}`,
-      `Beyond the ${baseTheme}`,
-      `Echoes of ${genre}`,
-      `Midnight ${instStr.split(' ')[0]}`,
-      `${baseTheme} in ${bpmMin} BPM`
-    ].sort(() => 0.5 - Math.random()).slice(0, 3);
-
-    const hooks = [
-      `A soaring melody over heavy ${selectedInsts[0] || 'drums'} that resolves the tension of the verse, chanting about ${baseTheme}.`,
-      `A rhythmic, driving vocal chop pattern that abruptly cuts to silence before dropping into a massive ${mood.toLowerCase()} chorus about ${baseTheme}.`,
-      `An intimate, almost whispered confession about ${baseTheme}, surrounded by swirling ${selectedInsts[1] || 'synths'}.`
-    ];
-
-    const verses = [
-      `Setting the scene: the initial realization of ${baseTheme}.`,
-      `The complication: how ${mood.toLowerCase()} emotions twist the perspective.`,
-      `The aftermath: looking back at the wreckage.`,
-      `Sensory details of the environment.`,
-      `A direct address to the antagonist of the story.`
-    ];
-
-    const bridges = [
-      `A sudden half-time switch up, dropping all instruments except ${selectedInsts[0] || 'piano'}.`,
-      `Building a chaotic wall of sound with ${instStr} that abruptly stops.`,
-      `A completely different chord progression introducing a new, conflicting perspective on ${baseTheme}.`
-    ];
-
-    const production = [
-      `Keep the low-end muddy but precise. Use heavy saturation on the ${selectedInsts[0] || 'lead'} to convey the ${mood.toLowerCase()} vibe.`,
-      `Aim for a wide stereo image in the chorus. The tempo should feel pushing at ${bpmMax} BPM but dragging at ${bpmMin} BPM.`,
-      `Very dry, upfront vocals. Let the ${instStr} sit wide and drowned in lush reverb to create contrast.`
-    ];
-
-    const artists = ["Frank Ocean", "The Weeknd", "Billie Eilish", "Tame Impala", "Rosalía", "Kendrick Lamar", "James Blake", "FKA twigs", "Bon Iver", "Flume"];
-
-    const concept: GeneratedConcept = {
-      id: crypto.randomUUID(),
-      date: new Date().toISOString(),
+    const concept = generateSongConcept({
       genre,
       mood,
-      theme: baseTheme,
-      bpmRange: `${bpmMin}-${bpmMax}`,
-      titles,
-      hookIdea: hooks[Math.floor(Math.random() * hooks.length)],
-      verseThemes: verses.sort(() => 0.5 - Math.random()).slice(0, 3),
-      bridgeConcept: bridges[Math.floor(Math.random() * bridges.length)],
-      productionNotes: production[Math.floor(Math.random() * production.length)],
-      referenceArtists: artists.sort(() => 0.5 - Math.random()).slice(0, 3)
-    };
-
+      bpmMin,
+      bpmMax,
+      theme,
+      selectedInsts,
+    });
     setCurrentConcept(concept);
   };
 

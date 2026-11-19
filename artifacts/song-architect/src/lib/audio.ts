@@ -1,14 +1,21 @@
+type WindowWithWebkitAudio = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 let sharedCtx: AudioContext | null = null;
 
 function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
   try {
     if (!sharedCtx || sharedCtx.state === "closed") {
-      const Ctx = window.AudioContext || (window as any).webkitAudioContext;
+      const Ctx =
+        window.AudioContext ||
+        (window as WindowWithWebkitAudio).webkitAudioContext;
       if (!Ctx) return null;
       sharedCtx = new Ctx();
     }
     if (sharedCtx.state === "suspended") {
-      sharedCtx.resume();
+      void sharedCtx.resume();
     }
     return sharedCtx;
   } catch {
@@ -24,7 +31,10 @@ export const playChord = (frequencies: number[], duration = 1.5) => {
   masterGain.connect(audioCtx.destination);
   masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
   masterGain.gain.linearRampToValueAtTime(0.28, audioCtx.currentTime + 0.015);
-  masterGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  masterGain.gain.exponentialRampToValueAtTime(
+    0.001,
+    audioCtx.currentTime + duration,
+  );
 
   frequencies.forEach((freq, i) => {
     const noteGain = audioCtx.createGain();
